@@ -23,6 +23,7 @@
 from PyQt5.QtNetwork import QNetworkProxy, QNetworkProxyFactory
 
 from qutebrowser.config import config, configtypes
+from qutebrowser.browser.webkit.network import pac
 
 
 def init():
@@ -46,6 +47,8 @@ class ProxyFactory(QNetworkProxyFactory):
         proxy = config.get('network', 'proxy')
         if proxy is configtypes.SYSTEM_PROXY:
             proxies = QNetworkProxyFactory.systemProxyForQuery(query)
+        elif isinstance(proxy, pac.PACFetcher):
+            proxies = proxy.resolve(query)
         else:
             proxies = [proxy]
         for p in proxies:
