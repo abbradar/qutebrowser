@@ -94,7 +94,7 @@ LOGGER_NAMES = [
     'commands', 'signals', 'downloads',
     'js', 'qt', 'rfc6266', 'ipc', 'shlexer',
     'save', 'message', 'config', 'sessions',
-    'webelem'
+    'webelem', 'network'
 ]
 
 
@@ -139,6 +139,7 @@ message = logging.getLogger('message')
 config = logging.getLogger('config')
 sessions = logging.getLogger('sessions')
 webelem = logging.getLogger('webelem')
+network = logging.getLogger('network')
 
 
 ram_handler = None
