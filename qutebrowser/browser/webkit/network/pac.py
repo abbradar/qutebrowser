@@ -592,13 +592,7 @@ class PACFetcher(QObject):
             self._manager = None
             del self._reply
 
-    def resolve(self, query):
-        """Resolve a query via PAC.
-
-        Args: QNetworkProxyQuery.
-
-        Return: A list of QNetworkProxy objects in order of preference.
-        """
+    def _wait(self):
         if self._manager is not None:
             self._loop = QEventLoop()
             self._reply.destroyed.connect(self._loop.quit)
@@ -607,4 +601,25 @@ class PACFetcher(QObject):
             self._manager = None
             del self._reply
 
-        return self._pac.resolve(query)
+    def is_fetched(self):
+        """Check if PAC script is successfully fetched.
+
+        Return: True iff PAC script is downloaded and evaluated successfully.
+        """
+        self._wait()
+        return self._pac is not None
+
+    def resolve(self, query):
+        """Resolve a query via PAC.
+
+        Args: QNetworkProxyQuery.
+
+        Return: A list of QNetworkProxy objects in order of preference.
+        """
+        self._wait()
+        try:
+            return self._pac.resolve(query)
+        except (EvalProxyError, ParseProxyError) as e:
+            log.network.exception("Error in PAC resolution: {!s}.".format(e))
+            error_host = "pac-resolve-error.qutebrowser.invalid"
+            return QNetworkProxy(QNetworkProxy.HttpProxy, error_host, 9)

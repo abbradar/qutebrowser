@@ -23,17 +23,35 @@
 from PyQt5.QtNetwork import QNetworkProxy, QNetworkProxyFactory
 
 from qutebrowser.config import config, configtypes
+from qutebrowser.utils import objreg
 from qutebrowser.browser.webkit.network import pac
 
 
 def init():
     """Set the application wide proxy factory."""
-    QNetworkProxyFactory.setApplicationProxyFactory(ProxyFactory())
+    proxy_factory = ProxyFactory()
+    objreg.register('proxy-factory', proxy_factory)
+    QNetworkProxyFactory.setApplicationProxyFactory(proxy_factory)
 
 
 class ProxyFactory(QNetworkProxyFactory):
 
     """Factory for proxies to be used by qutebrowser."""
+
+    def get_error(self):
+        """Check if proxy can't be resolved.
+
+        Return:
+           None if proxy is correct, otherwise an error message.
+        """
+        proxy = config.get('network', 'proxy')
+        if isinstance(proxy, pac.PACFetcher):
+            if proxy.is_fetched():
+                return None
+            else:
+                return "PAC script fetch or evaluation error"
+        else:
+            return None
 
     def queryProxy(self, query):
         """Get the QNetworkProxies for a query.

@@ -442,6 +442,13 @@ class NetworkManager(QNetworkAccessManager):
         Return:
             A QNetworkReply.
         """
+        proxy_factory = objreg.get('proxy-factory')
+        proxy_error = proxy_factory.get_error()
+        if proxy_error is not None:
+            return networkreply.ErrorNetworkReply(
+                req, proxy_error, QNetworkReply.UnknownProxyError,
+                self)
+
         scheme = req.url().scheme()
         if scheme in self._scheme_handlers:
             result = self._scheme_handlers[scheme].createRequest(
