@@ -17,6 +17,8 @@
 # You should have received a copy of the GNU General Public License
 # along with qutebrowser.  If not, see <http://www.gnu.org/licenses/>.
 
+import http.server
+import threading
 import logging
 
 from PyQt5.QtCore import QUrl, QDateTime, QDate, QTime, Qt
@@ -195,3 +197,36 @@ def test_invalid_port():
         assert False
     except pac.ParseProxyError:
         pass
+
+
+def test_fetch():
+    test_str = """
+        function FindProxyForURL(domain, host) {
+            return "DIRECT; PROXY 127.0.0.1:8080; SOCKS 192.168.1.1:4444";
+        }
+    """
+
+    class PACHandler(http.server.BaseHTTPRequestHandler):
+        def do_GET(self):
+            self.send_response(200)
+
+            self.send_header('Content-type', 'application/x-ns-proxy-autoconfig')
+            self.end_headers()
+
+            self.wfile.write(bytes(test_str, "ascii"))
+
+    def serve():
+        httpd = http.server.HTTPServer(("127.0.0.1", 8081), PACHandler)
+        httpd.handle_request()
+        print("Closing thread")
+
+    serve_thread = threading.Thread(target=serve, daemon=True)
+    serve_thread.start()
+    try:
+        res = pac.PACFetcher(QUrl("pac+http://127.0.0.1:8081"))
+        assert res.is_fetched()
+        serve_thread.join()
+        proxies = res.resolve(QNetworkProxyQuery(QUrl("https://example.com/test")))
+        assert len(proxies) == 3
+    finally:
+        serve_thread.join()
